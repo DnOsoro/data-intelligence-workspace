@@ -2,7 +2,10 @@ import pytest
 
 from app.core.sql_guardrails import SQLGuardrailError
 from app.database.duckdb_manager import DuckDBManager
-from app.services.query_executor import QueryExecutor
+from app.services.query_executor import (
+    QueryExecutionError,
+    QueryExecutor,
+)
 
 
 @pytest.fixture
@@ -33,56 +36,90 @@ def database() -> DuckDBManager:
     database.close()
 
 
-def test_executor_returns_rows(
+@pytest.fixture
+def executor(
     database: DuckDBManager,
-) -> None:
-    executor = QueryExecutor(database)
+) -> QueryExecutor:
+    return QueryExecutor(
+        database=database
+    )
 
+
+def test_execute_returns_columns_and_rows(
+    executor: QueryExecutor,
+) -> None:
     result = executor.execute(
-        sql=(
-            "SELECT country, "
-            "SUM(lifetime_value) AS total_value "
-            "FROM customers "
-            "GROUP BY country "
-            "ORDER BY total_value DESC"
-        ),
+        sql="""
+        SELECT customer_id, country, lifetime_value
+        FROM customers
+        ORDER BY customer_id
+        """,
         authorized_tables={"customers"},
     )
 
     assert result["columns"] == [
+        "customer_id",
         "country",
-        "total_value",
+        "lifetime_value",
     ]
 
-    assert len(result["rows"]) == 2
-    assert result["rows"][0][0] == "Kenya"
+    assert result["rows"] == [
+        [1, "Kenya", 125000.50],
+        [2, "Uganda", 98200.00],
+        [3, "Kenya", 67400.00],
+    ]
 
 
-def test_executor_rejects_unauthorized_table(
-    database: DuckDBManager,
+def test_execute_validates_sql_before_execution(
+    executor: QueryExecutor,
 ) -> None:
-    executor = QueryExecutor(database)
-
     with pytest.raises(
         SQLGuardrailError,
         match="unauthorized tables",
     ):
         executor.execute(
-            sql="SELECT * FROM internal_users",
+            sql="""
+            SELECT *
+            FROM internal_users
+            """,
             authorized_tables={"customers"},
         )
 
 
-def test_executor_rejects_write_query(
-    database: DuckDBManager,
+def test_execute_validated_runs_already_validated_sql(
+    executor: QueryExecutor,
 ) -> None:
-    executor = QueryExecutor(database)
+    result = executor.execute_validated(
+        """
+        SELECT country, COUNT(*) AS customer_count
+        FROM customers
+        GROUP BY country
+        ORDER BY customer_count DESC
+        """
+    )
 
+    assert result["columns"] == [
+        "country",
+        "customer_count",
+    ]
+
+    assert result["rows"] == [
+        ["Kenya", 2],
+        ["Uganda", 1],
+    ]
+
+
+def test_execute_validated_wraps_database_errors(
+    executor: QueryExecutor,
+) -> None:
     with pytest.raises(
-        SQLGuardrailError,
-        match="read-only",
+        QueryExecutionError,
+        match="Database query execution failed",
     ):
-        executor.execute(
-            sql="DELETE FROM customers",
-            authorized_tables={"customers"},
+        executor.execute_validated(
+            """
+            SELECT *
+            FROM customers
+            WHERE missing_column = 1
+            """
         )

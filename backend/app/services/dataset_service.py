@@ -16,6 +16,8 @@ class DatasetService:
         self.profiler = SchemaProfiler(database)
         self.registry = SchemaRegistry()
 
+        self._dataset_tables: dict[str, set[str]] = {}
+
     def load_dataset(
         self,
         file_path: Path,
@@ -47,14 +49,29 @@ class DatasetService:
 
         self.registry.register_table(table_schema)
 
-        return self.registry.build_dataset_schema(
-            dataset_name=dataset_name
-        )
+        self._dataset_tables.setdefault(
+            dataset_name,
+            set(),
+        ).add(table_name)
+
+        return self.get_dataset_schema(dataset_name)
 
     def get_dataset_schema(
         self,
         dataset_name: str,
     ) -> DatasetSchema:
-        return self.registry.build_dataset_schema(
-            dataset_name=dataset_name
+        table_names = self._dataset_tables.get(
+            dataset_name,
+            set(),
+        )
+
+        tables = [
+            table
+            for table in self.registry.list_tables()
+            if table.name in table_names
+        ]
+
+        return DatasetSchema(
+            dataset_name=dataset_name,
+            tables=tables,
         )

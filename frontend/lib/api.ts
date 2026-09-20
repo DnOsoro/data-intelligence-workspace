@@ -1,10 +1,26 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
+export type DatasetDataType = string;
+
+export interface ColumnSchema {
+  name: string;
+  data_type: DatasetDataType;
+  nullable: boolean;
+  sample_values: string[];
+}
+
+export interface TableSchema {
+  name: string;
+  row_count: number;
+  columns: ColumnSchema[];
+}
+
 export interface DatasetResponse {
   dataset_id: string;
   dataset_name: string;
   table_names: string[];
+  tables: TableSchema[];
 }
 
 export interface QueryResult {

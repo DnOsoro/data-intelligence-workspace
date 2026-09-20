@@ -1,8 +1,4 @@
-import pytest
-
-from app.agents.mock_sql_agent import MockSQLAgent
 from app.agents.sql_agent import SQLAgent
-from app.core.sql_guardrails import SQLGuardrailError
 from app.models.schema import (
     ColumnSchema,
     DatasetSchema,
@@ -17,17 +13,41 @@ from app.services.sql_generation_service import (
 )
 
 
+class FakeSQLAgent(SQLAgent):
+    def __init__(self) -> None:
+        self.last_request: SQLAgentRequest | None = None
+
+    def generate_sql(
+        self,
+        request: SQLAgentRequest,
+    ) -> SQLAgentResponse:
+        self.last_request = request
+
+        return SQLAgentResponse(
+            sql=(
+                "SELECT country, "
+                "MAX(lifetime_value) "
+                "FROM customers "
+                "GROUP BY country"
+            ),
+            explanation=(
+                "Groups customers by country and "
+                "calculates the maximum lifetime value."
+            ),
+        )
+
+
 def build_dataset_schema() -> DatasetSchema:
     return DatasetSchema(
         dataset_name="customer_analytics",
         tables=[
             TableSchema(
                 name="customers",
-                row_count=8,
+                row_count=3,
                 columns=[
                     ColumnSchema(
                         name="customer_id",
-                        data_type="BIGINT",
+                        data_type="INTEGER",
                     ),
                     ColumnSchema(
                         name="country",
@@ -43,105 +63,75 @@ def build_dataset_schema() -> DatasetSchema:
     )
 
 
-def test_service_returns_validated_sql() -> None:
+def test_generate_sql_passes_schema_context_to_agent() -> None:
+    agent = FakeSQLAgent()
+
     service = SQLGenerationService(
-        agent=MockSQLAgent()
+        agent=agent
     )
 
-    response = service.generate_validated_sql(
-        question=(
-            "Which country has the highest "
-            "lifetime customer value?"
-        ),
+    response = service.generate_sql(
+        question="What is the highest lifetime value?",
         dataset_schema=build_dataset_schema(),
     )
 
+    assert response.sql.startswith("SELECT")
+    assert agent.last_request is not None
+    assert "TABLE: customers" in (
+        agent.last_request.schema_context
+    )
+    assert "customer_id: INTEGER" in (
+        agent.last_request.schema_context
+    )
+
+
+def test_generate_sql_uses_only_provided_schema() -> None:
+    agent = FakeSQLAgent()
+
+    service = SQLGenerationService(
+        agent=agent
+    )
+
+    schema = build_dataset_schema()
+
+    response = service.generate_sql(
+        question="Show customer values",
+        dataset_schema=schema,
+    )
+
     assert response.sql
-    assert "SELECT" in response.sql
-    assert "customers" in response.sql
-    assert response.explanation
-
-
-class UnauthorizedSQLAgent(SQLAgent):
-    def generate_sql(
-        self,
-        request: SQLAgentRequest,
-    ) -> SQLAgentResponse:
-        return SQLAgentResponse(
-            sql=(
-                "SELECT * "
-                "FROM internal_users"
-            ),
-            explanation="Unauthorized query.",
-        )
-
-
-class WriteSQLAgent(SQLAgent):
-    def generate_sql(
-        self,
-        request: SQLAgentRequest,
-    ) -> SQLAgentResponse:
-        return SQLAgentResponse(
-            sql="DELETE FROM customers",
-            explanation="Malicious query.",
-        )
-
-
-def test_service_rejects_unauthorized_table() -> None:
-    service = SQLGenerationService(
-        agent=UnauthorizedSQLAgent()
+    assert agent.last_request is not None
+    assert "TABLE: customers" in (
+        agent.last_request.schema_context
+    )
+    assert "TABLE: orders" not in (
+        agent.last_request.schema_context
     )
 
-    with pytest.raises(
-        SQLGuardrailError,
-        match="unauthorized tables",
-    ):
-        service.generate_validated_sql(
-            question="Show internal users.",
-            dataset_schema=build_dataset_schema(),
-        )
 
+def test_validate_sql_returns_guarded_sql() -> None:
+    agent = FakeSQLAgent()
 
-def test_service_rejects_write_query() -> None:
     service = SQLGenerationService(
-        agent=WriteSQLAgent()
+        agent=agent
     )
 
-    with pytest.raises(
-        SQLGuardrailError,
-        match="read-only",
-    ):
-        service.generate_validated_sql(
-            question="Delete customers.",
-            dataset_schema=build_dataset_schema(),
-        )
-
-class MaliciousJoinSQLAgent(SQLAgent):
-    def generate_sql(
-        self,
-        request: SQLAgentRequest,
-    ) -> SQLAgentResponse:
-        return SQLAgentResponse(
-            sql=(
-                "SELECT * "
-                "FROM customers "
-                "JOIN internal_users "
-                "ON customers.customer_id = internal_users.customer_id"
-            ),
-            explanation="Attempted unauthorized join.",
-        )
-
-
-def test_service_rejects_unauthorized_join() -> None:
-    service = SQLGenerationService(
-        agent=MaliciousJoinSQLAgent()
+    response = SQLAgentResponse(
+        sql=(
+            "SELECT country "
+            "FROM customers"
+        ),
+        explanation="Lists customer countries.",
     )
 
-    with pytest.raises(
-        SQLGuardrailError,
-        match="unauthorized tables",
-    ):
-        service.generate_validated_sql(
-            question="Show customer and internal user data.",
-            dataset_schema=build_dataset_schema(),
-        )
+    validated = service.validate_sql(
+        sql_response=response,
+        authorized_tables={"customers"},
+    )
+
+    assert validated.sql == (
+        "SELECT country FROM customers"
+    )
+    assert validated.explanation == (
+        "Lists customer countries."
+    )

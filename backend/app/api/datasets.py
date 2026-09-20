@@ -46,6 +46,7 @@ async def upload_dataset(
                 table.name
                 for table in schema.tables
             ],
+            tables=schema.tables,
         )
 
     except ValueError as exc:
@@ -82,6 +83,7 @@ async def load_dataset(
                 table.name
                 for table in schema.tables
             ],
+            tables=schema.tables,
         )
 
     except FileNotFoundError as exc:
@@ -117,6 +119,7 @@ async def list_datasets() -> list[DatasetResponse]:
                 table.name
                 for table in schema.tables
             ],
+            tables=schema.tables,
         )
         for dataset_id, schema in datasets.items()
     ]
@@ -146,6 +149,7 @@ async def get_dataset(
             table.name
             for table in schema.tables
         ],
+        tables=schema.tables,
     )
 
 

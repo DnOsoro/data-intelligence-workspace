@@ -106,3 +106,11 @@ class DatasetUploadService:
             table_name = f"dataset_{table_name}"
 
         return table_name.lower()
+
+
+def test_upload_service_sanitizes_filename() -> None:
+    table_name = DatasetUploadService._build_table_name(
+        "../../Customer Sales 2026.csv"
+    )
+
+    assert table_name == "customer_sales_2026"

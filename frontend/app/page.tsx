@@ -9,11 +9,14 @@ import {
 import {
   executeQuery,
   uploadDataset,
+  DatasetResponse,
   QueryExecutionResponse,
 } from "@/lib/api";
 
 export default function Home() {
   const [datasetId, setDatasetId] = useState("");
+  const [dataset, setDataset] =
+    useState<DatasetResponse | null>(null);
   const [question, setQuestion] = useState(
     "Which country has the highest lifetime customer value?",
   );
@@ -60,6 +63,7 @@ export default function Home() {
     try {
       const dataset = await uploadDataset(file);
 
+      setDataset(dataset);
       setDatasetId(dataset.dataset_id);
     } catch (err) {
       setError(
@@ -234,7 +238,7 @@ export default function Home() {
 
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-xs text-zinc-600">
-                    Gemini NL2SQL
+                    Agentic NL2SQL · OpenRouter
                   </span>
 
                   <button
@@ -271,9 +275,7 @@ export default function Home() {
             )}
           </div>
 
-          <SchemaPanel
-            connected={Boolean(datasetId)}
-          />
+          <SchemaPanel dataset={dataset} />
         </section>
       </div>
     </main>
@@ -318,9 +320,9 @@ function MetricCard({
 }
 
 function SchemaPanel({
-  connected,
+  dataset,
 }: {
-  connected: boolean;
+  dataset: DatasetResponse | null;
 }) {
   return (
     <aside className="rounded-lg border border-zinc-800 bg-[#0c0c0f]">
@@ -335,31 +337,38 @@ function SchemaPanel({
       </div>
 
       <div className="p-4">
-        {connected ? (
-          <div>
-            <div className="flex items-center gap-2 text-sm text-zinc-300">
-              <span className="text-zinc-500">
-                Table
-              </span>
-              customers
-            </div>
+        {dataset ? (
+          <div className="space-y-4">
+            {dataset.tables.map((table) => (
+              <div key={table.name}>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-300">
+                    {table.name}
+                  </span>
 
-            <div className="mt-3 space-y-2 border-l border-zinc-800 pl-3">
-              {[
-                "customer_id",
-                "name",
-                "country",
-                "segment",
-                "lifetime_value",
-              ].map((column) => (
-                <div
-                  key={column}
-                  className="text-xs text-zinc-500"
-                >
-                  {column}
+                  <span className="text-[10px] text-zinc-600">
+                    {table.row_count.toLocaleString()} rows
+                  </span>
                 </div>
-              ))}
-            </div>
+
+                <div className="mt-3 space-y-2 border-l border-zinc-800 pl-3">
+                  {table.columns.map((column) => (
+                    <div
+                      key={column.name}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="truncate text-xs text-zinc-500">
+                        {column.name}
+                      </span>
+
+                      <span className="shrink-0 text-[10px] text-zinc-700">
+                        {column.data_type}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <p className="text-xs text-zinc-600">

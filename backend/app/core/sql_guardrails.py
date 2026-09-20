@@ -48,13 +48,18 @@ class SQLGuardrails:
                 )
 
         referenced_tables = {
-            table.name
+            self._build_table_reference(table)
             for table in expression.find_all(exp.Table)
         }
 
-        unauthorized_tables = (
-            referenced_tables - authorized_tables
-        )
+        unauthorized_tables = {
+            table_reference
+            for table_reference in referenced_tables
+            if not self._is_authorized_table(
+                table_reference=table_reference,
+                authorized_tables=authorized_tables,
+            )
+        }
 
         if unauthorized_tables:
             raise SQLGuardrailError(
@@ -63,3 +68,32 @@ class SQLGuardrails:
             )
 
         return sql.strip()
+
+    @staticmethod
+    def _build_table_reference(
+        table: exp.Table,
+    ) -> str:
+        parts = []
+
+        if table.catalog:
+            parts.append(table.catalog)
+
+        if table.db:
+            parts.append(table.db)
+
+        parts.append(table.name)
+
+        return ".".join(parts)
+
+    @staticmethod
+    def _is_authorized_table(
+        table_reference: str,
+        authorized_tables: set[str],
+    ) -> bool:
+        if table_reference in authorized_tables:
+            return True
+
+        if "." in table_reference:
+            return False
+
+        return table_reference in authorized_tables

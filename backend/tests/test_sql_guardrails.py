@@ -242,3 +242,57 @@ def test_accepts_table_alias(
     )
 
     assert result == sql.strip()
+
+
+def test_rejects_alter(
+    guardrails: SQLGuardrails,
+) -> None:
+    with pytest.raises(
+        SQLGuardrailError,
+        match="read-only",
+    ):
+        guardrails.validate(
+            sql=(
+                "ALTER TABLE customers "
+                "ADD COLUMN secret VARCHAR"
+            ),
+            authorized_tables={"customers"},
+        )
+
+
+def test_rejects_merge(
+    guardrails: SQLGuardrails,
+) -> None:
+    with pytest.raises(
+        SQLGuardrailError,
+        match="read-only",
+    ):
+        guardrails.validate(
+            sql=(
+                "MERGE INTO customers AS target "
+                "USING staging_customers AS source "
+                "ON target.customer_id = source.customer_id "
+                "WHEN MATCHED THEN UPDATE SET "
+                "country = source.country"
+            ),
+            authorized_tables={
+                "customers",
+                "staging_customers",
+            },
+        )
+
+
+def test_rejects_unauthorized_table_with_qualified_name(
+    guardrails: SQLGuardrails,
+) -> None:
+    with pytest.raises(
+        SQLGuardrailError,
+        match="unauthorized tables",
+    ):
+        guardrails.validate(
+            sql=(
+                "SELECT * "
+                "FROM internal_schema.customers"
+            ),
+            authorized_tables={"customers"},
+        )

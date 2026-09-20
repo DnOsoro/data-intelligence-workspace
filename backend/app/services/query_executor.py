@@ -2,6 +2,10 @@ from app.core.sql_guardrails import SQLGuardrails
 from app.database.duckdb_manager import DuckDBManager
 
 
+class QueryExecutionError(RuntimeError):
+    pass
+
+
 class QueryExecutor:
     def __init__(
         self,
@@ -28,16 +32,25 @@ class QueryExecutor:
         self,
         sql: str,
     ) -> dict:
-        result = self.database.execute(sql)
+        try:
+            result = self.database.execute(sql)
 
-        columns = [
-            description[0]
-            for description in result.description
-        ]
+            columns = [
+                description[0]
+                for description in result.description
+            ]
 
-        rows = result.fetchall()
+            rows = [
+                list(row)
+                for row in result.fetchall()
+            ]
 
-        return {
-            "columns": columns,
-            "rows": rows,
-        }
+            return {
+                "columns": columns,
+                "rows": rows,
+            }
+
+        except Exception as exc:
+            raise QueryExecutionError(
+                "Database query execution failed."
+            ) from exc

@@ -18,13 +18,26 @@ class SchemaSerializer:
             lines.append("COLUMNS:")
 
             for column in table.columns:
-                nullable = "NULLABLE" if column.nullable else "NOT NULL"
+                nullable = (
+                    "NULLABLE"
+                    if column.nullable
+                    else "NOT NULL"
+                )
 
-                lines.append(
+                line = (
                     f"- {column.name}: "
                     f"{column.data_type} "
                     f"[{nullable}]"
                 )
+
+                if column.sample_values:
+                    samples = ", ".join(
+                        column.sample_values
+                    )
+
+                    line += f" SAMPLES: [{samples}]"
+
+                lines.append(line)
 
             lines.append("")
 
