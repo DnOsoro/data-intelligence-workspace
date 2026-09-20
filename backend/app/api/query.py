@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from app.core.runtime import runtime
@@ -6,6 +8,8 @@ from app.models.query import (
     QueryRequest,
 )
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api",
@@ -42,8 +46,13 @@ async def execute_query(
             detail=str(exc),
         ) from exc
 
-    except Exception as exc:
+    except Exception:
+        logger.exception(
+            "Query execution failed for dataset_id=%s",
+            request.dataset_id,
+        )
+
         raise HTTPException(
             status_code=500,
             detail="Query execution failed.",
-        ) from exc
+        ) from None

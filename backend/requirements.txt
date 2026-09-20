@@ -5,6 +5,7 @@ click==8.5.0
 duckdb==1.5.5
 fastapi==0.141.1
 h11==0.16.0
+httpx==0.28.1
 idna==3.20
 iniconfig==2.3.0
 packaging==26.3

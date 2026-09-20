@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from app.agents.gemini_domain_architect import (
-    GeminiDomainArchitect,
+from app.agents.openrouter_domain_architect import (
+    OpenRouterDomainArchitect,
 )
-from app.agents.gemini_sql_agent import GeminiSQLAgent
+from app.agents.openrouter_sql_agent import OpenRouterSQLAgent
 from app.core.dataset_paths import DatasetPathValidator
 from app.database.duckdb_manager import DuckDBManager
 from app.services.dataset_manager import DatasetManager
@@ -33,8 +33,8 @@ class ApplicationRuntime:
 
         self.query_orchestrator = QueryOrchestrator(
             database=self.database,
-            domain_architect=GeminiDomainArchitect(),
-            sql_agent=GeminiSQLAgent(),
+            domain_architect=OpenRouterDomainArchitect(),
+            sql_agent=OpenRouterSQLAgent(),
         )
 
     def close(self) -> None:
