@@ -1,0 +1,9 @@
+customer_id,name,country,segment,lifetime_value
+1,Acme Corporation,Kenya,Enterprise,125000.50
+2,Globex Industries,Uganda,Enterprise,98200.00
+3,Northwind Traders,Tanzania,SMB,45100.75
+4,Contoso Ltd,Rwanda,SMB,38250.25
+5,Initech,Kenya,Mid-Market,67400.00
+6,Umbrella Group,Nigeria,Enterprise,156800.90
+7,Stark Industries,South Africa,Enterprise,198500.00
+8,Wayne Enterprises,Kenya,Enterprise,215750.45
