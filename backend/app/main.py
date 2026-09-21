@@ -10,14 +10,26 @@ app = FastAPI(
     version="0.1.0",
 )
 
+configured_origins = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "",
+)
+
 allowed_origins = [
     origin.strip()
-    for origin in os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
-    ).split(",")
+    for origin in configured_origins.split(",")
     if origin.strip()
 ]
+
+allowed_origins.extend(
+    [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://data-intelligence-workspace-6mhs.vercel.app",
+    ]
+)
+
+allowed_origins = list(dict.fromkeys(allowed_origins))
 
 app.add_middleware(
     CORSMiddleware,
