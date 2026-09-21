@@ -54,7 +54,7 @@ export async function loadDataset(
   datasetName: string,
 ): Promise<DatasetResponse> {
   const response = await fetch(
-    `${API_BASE_URL}/api/datasets`,
+    `${API_BASE_URL}/datasets`,
     {
       method: "POST",
       headers: {
@@ -84,7 +84,7 @@ export async function executeQuery(
   datasetId: string,
 ): Promise<QueryExecutionResponse> {
   const response = await fetch(
-    `${API_BASE_URL}/api/query`,
+    `${API_BASE_URL}/query`,
     {
       method: "POST",
       headers: {
@@ -131,7 +131,7 @@ export async function uploadDataset(
   formData.append("file", file);
 
   const response = await fetch(
-    `${API_BASE_URL}/api/datasets/upload`,
+    `${API_BASE_URL}/datasets/upload`,
     {
       method: "POST",
       body: formData,
