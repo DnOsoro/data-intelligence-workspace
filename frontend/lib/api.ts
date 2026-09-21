@@ -131,7 +131,7 @@ export async function uploadDataset(
   formData.append("file", file);
 
   const response = await fetch(
-    `${API_BASE_URL}/datasets/upload`,
+    `${API_BASE_URL}/datasets/upload/`,
     {
       method: "POST",
       body: formData,
