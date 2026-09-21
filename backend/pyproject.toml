@@ -1,3 +1,18 @@
+[project]
+name = "data-intelligence-workspace"
+version = "0.1.0"
+description = "Agentic natural-language data intelligence workspace"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "duckdb==1.5.5",
+    "fastapi==0.141.1",
+    "httpx==0.28.1",
+    "python-dotenv==1.2.3",
+    "python-multipart==0.0.32",
+    "sqlglot==30.18.0",
+    "uvicorn==0.53.0",
+]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
