@@ -26,11 +26,7 @@ async def upload_dataset(
     try:
         upload_service = DatasetUploadService(
             dataset_manager=runtime.dataset_manager,
-            upload_root=(
-                Path(__file__).resolve().parents[3]
-                / "data"
-                / "uploads"
-            ),
+            upload_root=runtime.upload_root,
         )
 
         dataset_id, schema = (

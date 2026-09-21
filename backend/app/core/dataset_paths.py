@@ -8,9 +8,26 @@ class DatasetPathError(ValueError):
 class DatasetPathValidator:
     def __init__(
         self,
-        allowed_root: Path,
+        allowed_root: Path | None = None,
+        allowed_roots: list[Path] | None = None,
     ) -> None:
-        self.allowed_root = allowed_root.resolve()
+        roots: list[Path] = []
+
+        if allowed_root is not None:
+            roots.append(allowed_root)
+
+        if allowed_roots is not None:
+            roots.extend(allowed_roots)
+
+        if not roots:
+            raise ValueError(
+                "At least one allowed dataset root is required."
+            )
+
+        self.allowed_roots = [
+            root.resolve()
+            for root in roots
+        ]
 
     def validate(
         self,
@@ -18,15 +35,21 @@ class DatasetPathValidator:
     ) -> Path:
         resolved_path = file_path.resolve()
 
-        try:
-            resolved_path.relative_to(
-                self.allowed_root
+        is_allowed = any(
+            resolved_path.is_relative_to(root)
+            for root in self.allowed_roots
+        )
+
+        if not is_allowed:
+            allowed_locations = ", ".join(
+                str(root)
+                for root in self.allowed_roots
             )
-        except ValueError as exc:
+
             raise DatasetPathError(
                 "Dataset file must be located inside "
-                f"{self.allowed_root}."
-            ) from exc
+                f"one of: {allowed_locations}."
+            )
 
         if not resolved_path.is_file():
             raise DatasetPathError(

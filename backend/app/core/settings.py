@@ -28,6 +28,11 @@ class Settings:
         ":memory:",
     )
 
+    upload_root: str = os.getenv(
+        "UPLOAD_ROOT",
+        "",
+    )
+
     openrouter_api_key: str = os.getenv(
         "OPENROUTER_API_KEY",
         "",

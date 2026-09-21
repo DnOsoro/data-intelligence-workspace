@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from app.agents.openrouter_domain_architect import (
@@ -22,8 +23,27 @@ class ApplicationRuntime:
         project_root = Path(__file__).resolve().parents[3]
         data_root = project_root / "data"
 
+        configured_upload_root = os.getenv(
+            "UPLOAD_ROOT",
+            "",
+        ).strip()
+
+        self.upload_root = (
+            Path(configured_upload_root)
+            if configured_upload_root
+            else data_root / "uploads"
+        )
+
+        self.upload_root.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
         self.dataset_path_validator = DatasetPathValidator(
-            allowed_root=data_root
+            allowed_roots=[
+                data_root,
+                self.upload_root,
+            ]
         )
 
         self.dataset_manager = DatasetManager(
